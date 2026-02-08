@@ -53,7 +53,8 @@ const analysisSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const { idea } = await req.json();
+  const body = await req.json();
+  const idea = body.idea ?? body;
 
   const result = streamText({
     model: "openai/gpt-4o",
