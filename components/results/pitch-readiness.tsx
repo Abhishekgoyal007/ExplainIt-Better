@@ -4,11 +4,26 @@ interface PitchReadinessProps {
   data?: {
     questions?: string[];
   };
+  isLoading?: boolean;
 }
 
-export function PitchReadiness({ data }: PitchReadinessProps) {
-  if (!data?.questions || data.questions.length === 0) return null;
+function LoadingSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-start gap-3">
+          <div className="h-6 w-6 bg-secondary/40 rounded-full animate-pulse flex-shrink-0"></div>
+          <div className="flex-1 space-y-2">
+            <div className="h-3 bg-secondary/40 rounded w-full animate-pulse"></div>
+            <div className="h-3 bg-secondary/40 rounded w-4/5 animate-pulse"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
+export function PitchReadiness({ data, isLoading }: PitchReadinessProps) {
   return (
     <section className="flex flex-col gap-6 rounded-xl border border-border bg-card p-6">
       <div className="flex items-center gap-3">
@@ -20,19 +35,23 @@ export function PitchReadiness({ data }: PitchReadinessProps) {
         </h2>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {data.questions.map((question, i) => (
-          <div
-            key={i}
-            className="flex items-start gap-3 rounded-lg border border-border/50 bg-secondary/30 px-4 py-3"
-          >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-              {i + 1}
-            </span>
-            <p className="text-foreground leading-relaxed">{question}</p>
-          </div>
-        ))}
-      </div>
+      {isLoading ? (
+        <LoadingSkeleton />
+      ) : !data?.questions || data.questions.length === 0 ? null : (
+        <div className="flex flex-col gap-3">
+          {data.questions.map((question, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 rounded-lg border border-border/50 bg-secondary/30 px-4 py-3"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                {i + 1}
+              </span>
+              <p className="text-foreground leading-relaxed">{question}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

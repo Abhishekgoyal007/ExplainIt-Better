@@ -6,6 +6,7 @@ interface IdeaValidationProps {
     marketCrowdedness?: "low" | "medium" | "high";
     differentiationSummary?: string;
   };
+  isLoading?: boolean;
 }
 
 function CrowdednessIndicator({
@@ -52,9 +53,21 @@ function CrowdednessIndicator({
   );
 }
 
-export function IdeaValidation({ data }: IdeaValidationProps) {
-  if (!data) return null;
+function LoadingSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="h-4 bg-secondary/40 rounded w-full animate-pulse"></div>
+      <div className="h-4 bg-secondary/40 rounded w-2/3 animate-pulse"></div>
+      <div className="flex gap-1">
+        <div className="h-6 bg-secondary/40 rounded-sm w-2 animate-pulse"></div>
+        <div className="h-8 bg-secondary/40 rounded-sm w-2 animate-pulse"></div>
+        <div className="h-10 bg-secondary/40 rounded-sm w-2 animate-pulse"></div>
+      </div>
+    </div>
+  );
+}
 
+export function IdeaValidation({ data, isLoading }: IdeaValidationProps) {
   return (
     <section className="flex flex-col gap-6 rounded-xl border border-border bg-card p-6">
       <div className="flex items-center gap-3">
@@ -66,35 +79,41 @@ export function IdeaValidation({ data }: IdeaValidationProps) {
         </h2>
       </div>
 
-      {data.similarityAssessment && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Similarity Assessment
-          </span>
-          <p className="text-foreground leading-relaxed">
-            {data.similarityAssessment}
-          </p>
-        </div>
-      )}
+      {isLoading ? (
+        <LoadingSkeleton />
+      ) : !data ? null : (
+        <>
+          {data.similarityAssessment && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Similarity Assessment
+              </span>
+              <p className="text-foreground leading-relaxed">
+                {data.similarityAssessment}
+              </p>
+            </div>
+          )}
 
-      {data.marketCrowdedness && (
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Market Crowdedness
-          </span>
-          <CrowdednessIndicator level={data.marketCrowdedness} />
-        </div>
-      )}
+          {data.marketCrowdedness && (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Market Crowdedness
+              </span>
+              <CrowdednessIndicator level={data.marketCrowdedness} />
+            </div>
+          )}
 
-      {data.differentiationSummary && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Differentiation
-          </span>
-          <p className="text-foreground leading-relaxed">
-            {data.differentiationSummary}
-          </p>
-        </div>
+          {data.differentiationSummary && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Differentiation
+              </span>
+              <p className="text-foreground leading-relaxed">
+                {data.differentiationSummary}
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex items-start gap-2 rounded-lg bg-secondary/50 px-3 py-2.5">

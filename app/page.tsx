@@ -49,6 +49,7 @@ export default function Home() {
     setHasSubmitted(true);
     setIsLoading(true);
     setResult(null);
+    console.log("[v0] Submitting idea:", idea.substring(0, 50));
 
     try {
       const response = await fetch("/api/analyze", {
@@ -58,13 +59,16 @@ export default function Home() {
       });
 
       const data = await response.json();
+      console.log("[v0] Response received:", response.status, Object.keys(data || {}));
 
       if (!response.ok) {
         throw new Error(data?.details || data?.error || "Failed to analyze");
       }
 
+      console.log("[v0] Setting result with keys:", Object.keys(data));
       setResult(data);
     } catch (err) {
+      console.error("[v0] Error:", err);
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
