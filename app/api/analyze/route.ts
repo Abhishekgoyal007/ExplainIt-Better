@@ -87,8 +87,12 @@ Provide a complete structured analysis covering clarity, validation, competitive
       }),
     });
 
-    console.log("[v0] generateText success, object keys:", Object.keys(result.object ?? {}));
-    return Response.json(result.object);
+    const output = JSON.parse(JSON.stringify(result.object));
+    console.log("[v0] generateText success, object keys:", Object.keys(output ?? {}));
+    return new Response(JSON.stringify(output), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("[v0] API error:", error);
     console.error("[v0] Error name:", (error as Error)?.name);
