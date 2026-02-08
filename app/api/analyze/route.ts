@@ -1,4 +1,5 @@
 import { generateText, Output } from "ai";
+import { xai } from "@ai-sdk/xai";
 import { z } from "zod";
 
 export const maxDuration = 60;
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
     }
 
     const result = await generateText({
-      model: "openai/gpt-4o",
+      model: xai("grok-4"),
       system: `You are a seasoned startup advisor and idea reviewer. Your job is to analyze ideas honestly and constructively.
 
 Rules:
