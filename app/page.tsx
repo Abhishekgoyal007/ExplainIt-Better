@@ -53,14 +53,17 @@ export default function Home() {
         body: JSON.stringify({ idea: idea.trim() }),
       });
 
+      const data = await response.json();
+      console.log("[v0] Response status:", response.status, "data:", JSON.stringify(data).substring(0, 200));
+
       if (!response.ok) {
-        throw new Error("Failed to analyze");
+        throw new Error(data?.details || data?.error || "Failed to analyze");
       }
 
-      const data = await response.json();
       setResult(data);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      console.error("[v0] Client error:", err);
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }

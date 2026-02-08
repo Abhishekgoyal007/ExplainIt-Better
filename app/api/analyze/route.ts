@@ -55,12 +55,15 @@ const analysisSchema = z.object({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log("[v0] Request body:", JSON.stringify(body));
     const idea = body.idea;
 
     if (!idea || typeof idea !== "string") {
+      console.log("[v0] Missing idea, got:", typeof idea);
       return Response.json({ error: "Missing idea" }, { status: 400 });
     }
 
+    console.log("[v0] Calling generateText with idea:", idea.substring(0, 50));
     const result = await generateText({
       model: "openai/gpt-4o-mini",
       system: `You are a seasoned startup advisor and idea reviewer. Your job is to analyze ideas honestly and constructively.
@@ -83,11 +86,14 @@ Provide a complete structured analysis covering clarity, validation, competitive
       }),
     });
 
+    console.log("[v0] generateText success, object keys:", Object.keys(result.object ?? {}));
     return Response.json(result.object);
   } catch (error) {
     console.error("[v0] API error:", error);
+    console.error("[v0] Error name:", (error as Error)?.name);
+    console.error("[v0] Error message:", (error as Error)?.message);
     return Response.json(
-      { error: "Failed to analyze idea" },
+      { error: "Failed to analyze idea", details: (error as Error)?.message },
       { status: 500 }
     );
   }
