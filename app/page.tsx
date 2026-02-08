@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Header } from "@/components/header";
+import { Navbar } from "@/components/navbar";
 import { IdeaInput } from "@/components/idea-input";
-import { ResultsPanel } from "@/components/results/results-panel";
+import { ClarityCheck } from "@/components/results/clarity-check";
+import { IdeaValidation } from "@/components/results/idea-validation";
+import { CompetitiveContext } from "@/components/results/competitive-context";
+import { PitchReadiness } from "@/components/results/pitch-readiness";
 
 interface AnalysisData {
   clarityCheck?: {
@@ -54,7 +57,6 @@ export default function Home() {
       });
 
       const data = await response.json();
-      console.log("[v0] Response status:", response.status, "data:", JSON.stringify(data).substring(0, 200));
 
       if (!response.ok) {
         throw new Error(data?.details || data?.error || "Failed to analyze");
@@ -62,7 +64,6 @@ export default function Home() {
 
       setResult(data);
     } catch (err) {
-      console.error("[v0] Client error:", err);
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
@@ -71,38 +72,66 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-24">
-        <Header />
+      <Navbar />
+      
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          {/* Left Column - Input Section (Sticky on larger screens) */}
+          <div className="lg:sticky lg:top-20 lg:h-fit">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Analyze Your Idea</h2>
+                <p className="text-sm text-muted-foreground">
+                  Paste your pitch or idea description and get instant feedback on clarity, market fit, and readiness.
+                </p>
+              </div>
 
-        <div className="flex flex-col gap-2">
-          <IdeaInput
-            value={idea}
-            onChange={(v) => {
-              setIdea(v);
-              if (error) setError(null);
-            }}
-            onSubmit={handleSubmit}
-            isLoading={isLoading}
-          />
-          {error && (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
+              <div className="flex flex-col gap-3">
+                <IdeaInput
+                  value={idea}
+                  onChange={(v) => {
+                    setIdea(v);
+                    if (error) setError(null);
+                  }}
+                  onSubmit={handleSubmit}
+                  isLoading={isLoading}
+                />
+                {error && (
+                  <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg" role="alert">
+                    {error}
+                  </p>
+                )}
+              </div>
+
+              {hasSubmitted && !isLoading && result && (
+                <div className="pt-6 border-t border-border">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    This analysis is based on AI interpretation. It's an early validation tool, not a definitive market assessment.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Results Grid */}
+          {hasSubmitted && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-6">
+                <ClarityCheck data={result?.clarityCheck} isLoading={isLoading} />
+                <IdeaValidation data={result?.ideaValidation} isLoading={isLoading} />
+              </div>
+              <div className="grid grid-cols-1 gap-6">
+                <CompetitiveContext data={result?.competitiveContext} isLoading={isLoading} />
+                <PitchReadiness data={result?.pitchReadiness} isLoading={isLoading} />
+              </div>
+            </div>
           )}
         </div>
 
-        {hasSubmitted && (
-          <ResultsPanel data={result ?? undefined} isLoading={isLoading} />
-        )}
-
-        {hasSubmitted && !isLoading && result && (
-          <footer className="text-center">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              This analysis is based on publicly available information and AI
-              interpretation. It is an early validation tool, not a definitive
-              market assessment.
-            </p>
-          </footer>
+        {!hasSubmitted && (
+          <div className="col-span-full text-center py-24">
+            <p className="text-muted-foreground">Enter your idea above to get started</p>
+          </div>
         )}
       </main>
     </div>
