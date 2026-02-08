@@ -1,55 +1,69 @@
 "use client";
 
 import { useState } from "react";
-import { useObject } from "@ai-sdk/react";
-import { z } from "zod";
 import { Header } from "@/components/header";
 import { IdeaInput } from "@/components/idea-input";
 import { ResultsPanel } from "@/components/results/results-panel";
 
-const analysisSchema = z.object({
-  clarityCheck: z.object({
-    score: z.number(),
-    targetAudience: z.string(),
-    unclearPoints: z.array(z.string()),
-    rewrittenVersion: z.string(),
-  }),
-  ideaValidation: z.object({
-    similarityAssessment: z.string(),
-    marketCrowdedness: z.enum(["low", "medium", "high"]),
-    differentiationSummary: z.string(),
-  }),
-  competitiveContext: z.object({
-    competitors: z.array(
-      z.object({
-        name: z.string(),
-        description: z.string(),
-      })
-    ),
-  }),
-  pitchReadiness: z.object({
-    questions: z.array(z.string()),
-  }),
-});
+interface AnalysisData {
+  clarityCheck?: {
+    score?: number;
+    targetAudience?: string;
+    unclearPoints?: string[];
+    rewrittenVersion?: string;
+  };
+  ideaValidation?: {
+    similarityAssessment?: string;
+    marketCrowdedness?: "low" | "medium" | "high";
+    differentiationSummary?: string;
+  };
+  competitiveContext?: {
+    competitors?: Array<{
+      name?: string;
+      description?: string;
+    }>;
+  };
+  pitchReadiness?: {
+    questions?: string[];
+  };
+}
 
 export default function Home() {
   const [idea, setIdea] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<AnalysisData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const { object, submit, isLoading, error } = useObject({
-    api: "/api/analyze",
-    schema: analysisSchema,
-  });
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!idea.trim()) {
-      setValidationError("Please enter your idea or pitch before analyzing.");
+      setError("Please enter your idea or pitch before analyzing.");
       return;
     }
-    setValidationError(null);
+
+    setError(null);
     setHasSubmitted(true);
-    submit({ idea: idea.trim() });
+    setIsLoading(true);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea: idea.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze");
+      }
+
+      const data = await response.json();
+      setResult(data);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -62,28 +76,23 @@ export default function Home() {
             value={idea}
             onChange={(v) => {
               setIdea(v);
-              if (validationError) setValidationError(null);
+              if (error) setError(null);
             }}
             onSubmit={handleSubmit}
             isLoading={isLoading}
           />
-          {validationError && (
-            <p className="text-sm text-destructive" role="alert">
-              {validationError}
-            </p>
-          )}
           {error && (
             <p className="text-sm text-destructive" role="alert">
-              Something went wrong. Please try again.
+              {error}
             </p>
           )}
         </div>
 
         {hasSubmitted && (
-          <ResultsPanel data={object ?? undefined} isLoading={isLoading} />
+          <ResultsPanel data={result ?? undefined} isLoading={isLoading} />
         )}
 
-        {hasSubmitted && !isLoading && object && (
+        {hasSubmitted && !isLoading && result && (
           <footer className="text-center">
             <p className="text-xs text-muted-foreground leading-relaxed">
               This analysis is based on publicly available information and AI

@@ -1,4 +1,4 @@
-import { streamText, Output } from "ai";
+import { generateText, Output } from "ai";
 import { z } from "zod";
 
 export const maxDuration = 60;
@@ -47,37 +47,48 @@ const analysisSchema = z.object({
     questions: z
       .array(z.string())
       .describe(
-        "5 to 7 challenging questions that someone might ask while pitching this idea, testing clarity, feasibility, differentiation, and value"
+        "5 to 7 challenging questions that someone might ask while pitching this idea"
       ),
   }),
 });
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const idea = body.idea ?? body;
+  try {
+    const body = await req.json();
+    const idea = body.idea;
 
-  const result = streamText({
-    model: "openai/gpt-4o",
-    system: `You are a seasoned startup advisor and idea reviewer. Your job is to analyze ideas honestly and constructively.
+    if (!idea || typeof idea !== "string") {
+      return Response.json({ error: "Missing idea" }, { status: 400 });
+    }
+
+    const result = await generateText({
+      model: "openai/gpt-4o",
+      system: `You are a seasoned startup advisor and idea reviewer. Your job is to analyze ideas honestly and constructively.
 
 Rules:
 - Be direct, honest, and practical. No hype or marketing language.
 - Assume the reader has no prior context about the idea.
 - For competitive context, draw from your knowledge of publicly available products and startups.
 - For pitch questions, think like a skeptical but fair investor or judge.
-- Always err on the side of being helpful over being harsh.
-- Base your analysis on publicly available information. This is an early validation, not definitive market research.`,
-    prompt: `Analyze the following idea or pitch thoroughly:
+- Always err on the side of being helpful over being harsh.`,
+      prompt: `Analyze the following idea or pitch thoroughly:
 
 """
 ${idea}
 """
 
 Provide a complete structured analysis covering clarity, validation, competitive landscape, and pitch readiness.`,
-    output: Output.object({
-      schema: analysisSchema,
-    }),
-  });
+      output: Output.object({
+        schema: analysisSchema,
+      }),
+    });
 
-  return result.toTextStreamResponse();
+    return Response.json(result.object);
+  } catch (error) {
+    console.error("[v0] API error:", error);
+    return Response.json(
+      { error: "Failed to analyze idea" },
+      { status: 500 }
+    );
+  }
 }
