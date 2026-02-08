@@ -1,55 +1,98 @@
 "use client";
 
 import { useState } from "react";
-import { useObject } from "@ai-sdk/react";
-import { z } from "zod";
 import { Header } from "@/components/header";
 import { IdeaInput } from "@/components/idea-input";
 import { ResultsPanel } from "@/components/results/results-panel";
 
-const analysisSchema = z.object({
-  clarityCheck: z.object({
-    score: z.number(),
-    targetAudience: z.string(),
-    unclearPoints: z.array(z.string()),
-    rewrittenVersion: z.string(),
-  }),
-  ideaValidation: z.object({
-    similarityAssessment: z.string(),
-    marketCrowdedness: z.enum(["low", "medium", "high"]),
-    differentiationSummary: z.string(),
-  }),
-  competitiveContext: z.object({
-    competitors: z.array(
-      z.object({
-        name: z.string(),
-        description: z.string(),
-      })
-    ),
-  }),
-  pitchReadiness: z.object({
-    questions: z.array(z.string()),
-  }),
-});
+interface AnalysisData {
+  clarityCheck?: {
+    score?: number;
+    targetAudience?: string;
+    unclearPoints?: string[];
+    rewrittenVersion?: string;
+  };
+  ideaValidation?: {
+    similarityAssessment?: string;
+    marketCrowdedness?: "low" | "medium" | "high";
+    differentiationSummary?: string;
+  };
+  competitiveContext?: {
+    competitors?: Array<{
+      name?: string;
+      description?: string;
+    }>;
+  };
+  pitchReadiness?: {
+    questions?: string[];
+  };
+}
 
 export default function Home() {
   const [idea, setIdea] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<AnalysisData | undefined>(undefined);
 
-  const { object, submit, isLoading } = useObject({
-    api: "/api/analyze",
-    schema: analysisSchema,
-  });
+  console.log("[v0] Page rendered, hasSubmitted:", hasSubmitted, "isLoading:", isLoading);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!idea.trim()) {
       setError("Please enter your idea or pitch before analyzing.");
       return;
     }
     setError(null);
     setHasSubmitted(true);
-    submit({ idea: idea.trim() });
+    setIsLoading(true);
+    setResult(undefined);
+
+    try {
+      console.log("[v0] Submitting idea to API");
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea: idea.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+
+        try {
+          const parsed = JSON.parse(fullText);
+          console.log("[v0] Parsed partial result:", Object.keys(parsed));
+          setResult(parsed);
+        } catch {
+          // Still accumulating JSON, not yet parseable
+        }
+      }
+
+      // Final parse
+      try {
+        const finalResult = JSON.parse(fullText);
+        console.log("[v0] Final result:", Object.keys(finalResult));
+        setResult(finalResult);
+      } catch (e) {
+        console.log("[v0] Failed to parse final result:", fullText.slice(0, 200));
+      }
+    } catch (err) {
+      console.error("[v0] API call failed:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -75,10 +118,10 @@ export default function Home() {
         </div>
 
         {hasSubmitted && (
-          <ResultsPanel data={object ?? undefined} isLoading={isLoading} />
+          <ResultsPanel data={result} isLoading={isLoading} />
         )}
 
-        {hasSubmitted && !isLoading && object && (
+        {hasSubmitted && !isLoading && result && (
           <footer className="text-center">
             <p className="text-xs text-muted-foreground leading-relaxed">
               This analysis is based on publicly available information and AI
